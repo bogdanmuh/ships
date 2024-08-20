@@ -21,6 +21,4 @@ public class Main {
         return new Ship((int) (Math.random() * 100),
                 Product.values()[1],
                 10);
-    }
-///(int) (Math.random() * Product.values().length)
 }
