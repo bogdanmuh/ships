@@ -2,29 +2,55 @@ package org.example;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Semaphore;
 
 public class Tunnel {
-    private static BlockingQueue<Ship> queue;
-    private final int QUEUE_CAPACITY = 5;
-    public Tunnel() {
-        if (queue == null) {
-            queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY, true);
+    private final int QUEUE_CAPACITY = 2;
+    private final int length = 20;
+    private final Semaphore semaphore = new Semaphore(QUEUE_CAPACITY);
+    private final Object lock = new Object();
+
+    private static final class Holder {
+        private static final Tunnel INSTANCE = new Tunnel();
+    }
+
+    public static Tunnel getInstance() {
+        return Holder.INSTANCE;
+    }
+
+    private Tunnel() {}
+
+    public void add(Ship ship, boolean isBack) {
+        try {
+            semaphore.acquire();
+            if (isBack) {
+                System.out.printf("%s корабль отплывает от причала и вошел в туннель%n",
+                        Thread.currentThread().getName());
+                Thread.sleep(length / ship.getSpeed() * 1000);
+                System.out.printf("%s корабль отплывает от причала и вышел из туннеля%n",
+                        Thread.currentThread().getName());
+            } else {
+                System.out.printf("%s корабль вошел в туннель%n",
+                        Thread.currentThread().getName());
+                Thread.sleep(length / ship.getSpeed() * 1000);
+                System.out.printf("%s корабль вышел из туннеля%n",
+                        Thread.currentThread().getName());
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        semaphore.release();
+        synchronized (lock) {
+            lock.notify();
         }
     }
-    public void add(Ship ship) {
-        queue.add(ship);
-    }
-    public Ship poll() {
-        Ship ship = queue.poll();
-        return ship;
+
+    public Object getLock() {
+        return lock;
     }
 
     public boolean isfull() {
-       return queue.size() == QUEUE_CAPACITY;
-    }
-
-    public boolean isEmpty() {
-        return queue.isEmpty();
+        return semaphore.getQueueLength() != 0;
     }
 
 }
